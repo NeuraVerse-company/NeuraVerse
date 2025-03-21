@@ -91,15 +91,16 @@
         <div id="mic-reminder">Por favor, ative o microfone para usar esta página.</div>
     </div>
 
-    <script src="https://cognitiveservices.azure.com/speechservices/v1/speech.browser.sdk.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.40.0/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
     <script>
         // Verificar se o SpeechSDK foi carregado
-        if (!window.SpeechSDK) {
+        if (!window.Microsoft || !window.Microsoft.CognitiveServices || !window.Microsoft.CognitiveServices.Speech) {
             console.error("SpeechSDK não carregado. Verifique a conexão ou o script.");
             document.getElementById("mic-reminder").style.display = "block";
             document.getElementById("mic-reminder").textContent = "Erro ao carregar o Speech SDK. Tente novamente.";
         } else {
-            const { SpeechConfig, AudioConfig, SpeechRecognizer } = window.SpeechSDK;
+            const SpeechSDK = window.Microsoft.CognitiveServices.Speech;
+            const { SpeechConfig, AudioConfig, SpeechRecognizer } = SpeechSDK;
 
             // Configurações do Azure Speech Service
             const subscriptionKey = "SUA_CHAVE_DO_AZURE_SPEECH";
