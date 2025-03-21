@@ -4,49 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neuraverse - Quem Somos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Roboto", sans-serif;
             margin: 0;
             padding: 20px;
             background: #1e1e1e;
             color: #e0e0e0;
             min-height: 100vh;
+            overflow-x: hidden;
         }
         .content {
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
-            background: none;
-            border: none;
-            border-radius: 0;
-            width: 100%;
-            height: 100%;
-            box-shadow: none;
-            text-align: justify;
-            font-family: "Orbitron", sans-serif;
         }
         .content h3 {
+            font-family: "Orbitron", sans-serif;
             color: #00b7ff;
-            margin-top: 0;
+            font-size: 24px;
+            margin: 40px 0 20px;
             text-align: center;
         }
         .content p {
+            font-size: 16px;
+            line-height: 1.6;
             text-align: justify;
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
         }
         .values-list {
             list-style-type: none;
-            padding: 0;
-            text-align: justify;
+            padding: 15px;
+            font-size: 16px;
+            line-height: 1.6;
+            background: #2a2a2a;
+            border-radius: 8px;
         }
         .values-list li {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            padding-left: 20px;
+            position: relative;
+            text-align: justify;
+        }
+        .values-list li::before {
+            content: "•";
+            color: #00b7ff;
+            position: absolute;
+            left: 0;
         }
         .values-list li strong {
             color: #00b7ff;
+            font-weight: 500;
         }
         .content img {
             display: block;
-            margin: 0 auto 20px auto;
+            margin: 0 auto 30px auto;
             max-width: 200px;
             height: auto;
         }
@@ -54,7 +72,7 @@
 </head>
 <body>
     <div class="content">
-        <img src="NV.PNG" alt="Neuraverse Logo">
+        <img src="./NV.PNG" alt="Neuraverse Logo">
         <h3>Missão</h3>
         <p>Acreditamos no poder da inteligência artificial para ampliar o potencial humano. Nossa missão é conectar pessoas e modelos de IA, criando um verdadeiro Mastermind entre indivíduos e tecnologia. Desenvolvemos soluções inovadoras e oferecemos consultoria estratégica para transformar ideias em realidade, sempre com foco no futuro.</p>
         <h3>Visão</h3>
@@ -67,5 +85,7 @@
             <li><strong>Ética e Transparência:</strong> Construímos IA responsável, alinhada aos valores humanos e ao bem comum.</li>
         </ul>
     </div>
+    <!-- Cloudflare script mantido -->
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'923df1108966bd52',t:'MTc0MjU2NTI3MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('script');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
