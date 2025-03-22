@@ -61,7 +61,15 @@
     <button id="mic-button">🎤</button>
     <div id="status">Clique no botão para ativar o microfone e começar a conversar.</div>
 
-    <script src="https://aka.ms/csspeech/jsbrowser"></script>
+    <script>
+        let isSpeechSDKLoaded = false;
+
+        function onSpeechSDKLoaded() {
+            console.log("Azure Speech SDK carregado com sucesso!");
+            isSpeechSDKLoaded = true;
+        }
+    </script>
+    <script src="https://unpkg.com/microsoft-cognitiveservices-speech-sdk@1.43.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js" onload="onSpeechSDKLoaded()"></script>
     <script>
         const backgroundCanvas = document.getElementById('background-canvas');
         const backgroundCtx = backgroundCanvas.getContext('2d');
@@ -221,6 +229,11 @@
                 }
                 if (!keys || !keys.speechKey || !keys.speechRegion) {
                     status.textContent = "Erro: Chave ou região do Speech Service não disponível.";
+                    return;
+                }
+
+                if (!isSpeechSDKLoaded) {
+                    status.textContent = "Erro: Azure Speech SDK ainda não foi carregado. Tente novamente.";
                     return;
                 }
 
