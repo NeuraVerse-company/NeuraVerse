@@ -3,33 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversa com IA</title>
+    <title>Projetos - Neuraverse</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            height: 100vh;
+            padding: 20px;
+            background: #000000;
+            color: #e0e0e0;
+            position: relative;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: #000000;
-            color: white;
+        }
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
         }
         #mic-button {
-            padding: 10px;
+            padding: 15px;
             background-color: #0078d4;
             color: white;
             border: none;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 16px;
-            width: 40px;
-            height: 40px;
+            font-size: 24px;
+            width: 60px;
+            height: 60px;
             display: flex;
             justify-content: center;
             align-items: center;
             margin-bottom: 10px;
+            z-index: 2;
         }
         #mic-button.listening {
             background-color: #ff4444;
@@ -38,178 +50,290 @@
             color: #ff4444;
             font-size: 14px;
             text-align: center;
-            display: none;
+            display: block;
+            margin-bottom: 20px;
+            z-index: 2;
         }
     </style>
 </head>
 <body>
+    <canvas id="background-canvas"></canvas>
     <button id="mic-button">🎤</button>
-    <div id="status">Por favor, ative o microfone para conversar.</div>
+    <div id="status">Clique no botão para ativar o microfone e começar a conversar.</div>
 
-    <!-- Carrega o Speech SDK localmente usando caminho absoluto -->
-    <script src="/microsoft.cognitiveservices.speech.sdk.bundle-min.js"
-            id="speech-sdk-script"
-            onerror="document.getElementById('status').style.display = 'block'; document.getElementById('status').textContent = 'Erro ao carregar o Speech SDK. Verifique se o arquivo está na pasta correta.';"></script>
-
+    <script src="https://aka.ms/csspeech/jsbrowser"></script>
     <script>
-        // Função principal que será chamada quando o Speech SDK carregar
-        function initializeSpeechSDK() {
-            if (!window.Microsoft || !window.Microsoft.CognitiveServices || !window.Microsoft.CognitiveServices.Speech) {
-                console.error("SpeechSDK não carregado.");
-                document.getElementById("status").style.display = "block";
-                document.getElementById("status").textContent = "Erro ao carregar o Speech SDK. Tente novamente.";
+        const backgroundCanvas = document.getElementById('background-canvas');
+        const backgroundCtx = backgroundCanvas.getContext('2d');
+        let backgroundParticlesArray = [];
+
+        function resizeBackgroundCanvas() {
+            backgroundCanvas.width = window.innerWidth;
+            backgroundCanvas.height = window.innerHeight;
+            backgroundCtx.fillStyle = '#000000';
+            backgroundCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+        }
+        window.addEventListener('resize', resizeBackgroundCanvas);
+        resizeBackgroundCanvas();
+
+        class Particle {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 5 + 1;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+                this.brightness = Math.random() * 0.5 + 0.5;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > this.canvas.width || this.x < 0) this.speedX *= -1;
+                if (this.y > this.canvas.height || this.y < 0) this.speedY *= -1;
+                this.brightness = Math.sin(Date.now() * 0.005) * 0.5 + 0.5;
+            }
+            draw(ctx) {
+                ctx.fillStyle = `rgba(0, 183, 255, ${this.brightness})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initBackgroundParticles() {
+            backgroundParticlesArray = [];
+            const numberOfParticles = 50;
+            for (let i = 0; i < numberOfParticles; i++) {
+                backgroundParticlesArray.push(new Particle(backgroundCanvas));
+            }
+        }
+        initBackgroundParticles();
+
+        function connectParticles(particles, ctx, canvas) {
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let dx = particles[a].x - particles[b].x;
+                    let dy = particles[a].y - particles[b].y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 100) {
+                        ctx.strokeStyle = `rgba(0, 183, 255, ${1 - distance / 100})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            backgroundCtx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+            backgroundCtx.fillStyle = '#000000';
+            backgroundCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+            for (let i = 0; i < backgroundParticlesArray.length; i++) {
+                backgroundParticlesArray[i].update();
+                backgroundParticlesArray[i].draw(backgroundCtx);
+            }
+            connectParticles(backgroundParticlesArray, backgroundCtx, backgroundCanvas);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Lógica para reconhecimento de fala no frontend
+        const micButton = document.getElementById("mic-button");
+        const status = document.getElementById("status");
+        let ws = null;
+        let isRecognizing = false;
+        let recognizer = null;
+        let keys = null;
+
+        async function getKeys() {
+            try {
+                const response = await fetch("/api/keys");
+                const data = await response.json();
+                keys = data;
+                return data;
+            } catch (err) {
+                console.error("Erro ao buscar as chaves:", err);
+                status.textContent = "Erro ao buscar as chaves: " + err.message;
+                return null;
+            }
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket("wss://neuraverse-company-cvdncgayb0a0fgek.brazilsouth-01.azurewebsites.net");
+
+            ws.onopen = () => {
+                console.log("Conectado ao servidor WebSocket");
+                status.textContent = "Conectado ao WebSocket. Clique no botão para falar.";
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.text && data.response) {
+                    status.textContent = "Você disse: " + data.text + "\nResposta: " + data.response;
+                    speakResponse(data.response);
+                } else if (data.error) {
+                    status.textContent = data.error;
+                    isRecognizing = false;
+                    micButton.classList.remove("listening");
+                    if (recognizer) {
+                        recognizer.stopContinuousRecognitionAsync();
+                        recognizer.close();
+                        recognizer = null;
+                    }
+                }
+            };
+
+            ws.onclose = () => {
+                console.log("Desconectado do servidor WebSocket");
+                isRecognizing = false;
+                micButton.classList.remove("listening");
+                status.textContent = "Clique no botão para ativar o microfone e começar a conversar.";
+                if (recognizer) {
+                    recognizer.stopContinuousRecognitionAsync();
+                    recognizer.close();
+                    recognizer = null;
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error("Erro no WebSocket:", error);
+                status.textContent = "Erro ao conectar ao WebSocket: " + error.message;
+            };
+        }
+
+        async function startRecognition() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                connectWebSocket();
+            }
+
+            setTimeout(async () => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    status.textContent = "Erro: WebSocket não está conectado.";
+                    return;
+                }
+
+                if (!keys) {
+                    await getKeys();
+                }
+                if (!keys || !keys.speechKey || !keys.speechRegion) {
+                    status.textContent = "Erro: Chave ou região do Speech Service não disponível.";
+                    return;
+                }
+
+                const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(keys.speechKey, keys.speechRegion);
+                speechConfig.speechRecognitionLanguage = "pt-BR";
+                const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+                recognizer.recognized = (s, e) => {
+                    if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                        console.log("Texto reconhecido:", e.result.text);
+                        ws.send(JSON.stringify({ text: e.result.text }));
+                    }
+                };
+
+                recognizer.canceled = (s, e) => {
+                    console.error("Reconhecimento cancelado:", e.errorDetails);
+                    ws.send(JSON.stringify({ error: "Erro no reconhecimento de voz: " + e.errorDetails }));
+                    recognizer.close();
+                    recognizer = null;
+                    isRecognizing = false;
+                    micButton.classList.remove("listening");
+                };
+
+                recognizer.sessionStopped = () => {
+                    console.log("Sessão de reconhecimento parada.");
+                    recognizer.close();
+                    recognizer = null;
+                    isRecognizing = false;
+                    micButton.classList.remove("listening");
+                };
+
+                recognizer.startContinuousRecognitionAsync(
+                    () => {
+                        console.log("Reconhecimento iniciado com sucesso!");
+                        status.textContent = "Microfone ativado. Fale algo...";
+                    },
+                    (err) => {
+                        console.error("Erro ao iniciar reconhecimento:", err);
+                        status.textContent = "Erro ao iniciar o reconhecimento: " + err;
+                    }
+                );
+
+                isRecognizing = true;
+                micButton.classList.add("listening");
+            }, 500);
+        }
+
+        function stopRecognition() {
+            if (recognizer) {
+                recognizer.stopContinuousRecognitionAsync(
+                    () => {
+                        console.log("Reconhecimento parado.");
+                        recognizer.close();
+                        recognizer = null;
+                    },
+                    (err) => console.error("Erro ao parar reconhecimento:", err)
+                );
+            }
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: "stop" }));
+            }
+            isRecognizing = false;
+            micButton.classList.remove("listening");
+            status.textContent = "Clique no botão para ativar o microfone e começar a conversar.";
+        }
+
+        async function speakResponse(text) {
+            if (!keys || !keys.elevenlabsKey || !keys.elevenlabsVoiceId) {
+                status.textContent = "Erro: Chaves do ElevenLabs não disponíveis.";
                 return;
             }
 
-            const SpeechSDK = window.Microsoft.CognitiveServices.Speech;
-            const { SpeechConfig, AudioConfig, SpeechRecognizer } = SpeechSDK;
+            const url = `https://api.elevenlabs.io/v1/text-to-speech/${keys.elevenlabsVoiceId}/stream`;
 
-            // Configurações do Azure Speech Service
-            const subscriptionKey = "34fnIXKyvJueY9akKmYlYVYstfvK2hmgIxY0szjdvsAYAvFjgH7aJQQJ99BCACYeBjFXJ3w3AAAYACOGhTJG"; // Substitua pela sua chave real
-            const region = "eastus"; // Confirme a região
-            const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, region);
-            speechConfig.speechRecognitionLanguage = "pt-BR";
-
-            // Elementos da interface
-            const micButton = document.getElementById("mic-button");
-            const status = document.getElementById("status");
-            let recognizer = null;
-            let isProcessing = false;
-
-            // Iniciar reconhecimento de voz
-            function startRecognition() {
-                const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-                recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-                micButton.classList.add("listening");
-
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(() => {
-                        status.style.display = "none";
-                        recognizer.recognized = (s, e) => {
-                            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech && !isProcessing) {
-                                isProcessing = true;
-                                status.textContent = "Ouvindo: " + e.result.text;
-                                processInput(e.result.text);
-                            }
-                        };
-                        recognizer.canceled = (s, e) => {
-                            console.error("Reconhecimento cancelado:", e.errorDetails);
-                            status.style.display = "block";
-                            status.textContent = "Erro no reconhecimento de voz.";
-                            restartRecognition();
-                        };
-                        recognizer.sessionStopped = () => restartRecognition();
-                        recognizer.startContinuousRecognitionAsync(
-                            () => console.log("Reconhecimento iniciado"),
-                            (err) => {
-                                console.error("Erro ao iniciar:", err);
-                                status.style.display = "block";
-                                status.textContent = "Erro ao iniciar o reconhecimento.";
-                            }
-                        );
+            try {
+                console.log("Enviando solicitação para ElevenLabs:", text);
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "xi-api-key": keys.elevenlabsKey
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        model_id: "eleven_multilingual_v2",
+                        voice_settings: { stability: 0.5, similarity_boost: 0.5 }
                     })
-                    .catch((err) => {
-                        console.error("Microfone não disponível:", err);
-                        status.style.display = "block";
-                        status.textContent = "Microfone não disponível. Verifique as permissões.";
-                    });
+                });
+
+                if (!response.ok) throw new Error("Erro na resposta do ElevenLabs: " + response.statusText);
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+                audio.onplay = () => console.log("Áudio sendo reproduzido.");
+                audio.onerror = (err) => {
+                    console.error("Erro ao reproduzir áudio:", err);
+                    status.textContent = "Erro ao reproduzir a resposta de áudio.";
+                };
+            } catch (err) {
+                console.error("Erro ao sintetizar voz com ElevenLabs:", err);
+                status.textContent = "Erro ao sintetizar a voz: " + err.message;
             }
-
-            // Reiniciar reconhecimento
-            function restartRecognition() {
-                if (recognizer) {
-                    recognizer.stopContinuousRecognitionAsync(
-                        () => {
-                            recognizer.close();
-                            recognizer = null;
-                            startRecognition();
-                        },
-                        (err) => console.error("Erro ao parar:", err)
-                    );
-                }
-            }
-
-            // Processar entrada com Azure OpenAI
-            async function processInput(input) {
-                const apiKey = "9Y2rjq7DuAOFhDL8n8zrJcgK9kfydyNtnv3p21iCR0YCCM6gRNfhJQQJ99BCACHrzpqXJ3w3AAABACOGuH95"; // Substitua pela sua chave real
-                const endpoint = "https://brunoia-openai-1.openai.azure.com/"; // Substitua pelo seu endpoint real
-                const deployment = "BrunoAI-01"; // Substitua pelo nome do deployment real
-                const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2023-05-15`;
-
-                try {
-                    const response = await fetch(url, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "api-key": apiKey
-                        },
-                        body: JSON.stringify({
-                            messages: [
-                                { role: "system", content: "Você é Bruno Perini, criador do canal 'Você Mais Rico', especialista em finanças e investimentos. Seu objetivo é ensinar as pessoas a investir de forma inteligente, construir patrimônio e alcançar independência financeira.Você explica conceitos financeiros com profundidade, fornecendo exemplos práticos e embasando suas respostas com lógica e referências do mercado. Você evita respostas curtas e sempre detalha seus argumentos para garantir que a pessoa compreenda o tema por completo.Além do canal 'Você Mais Rico', você e sua esposa, Malu Perini, comandam o canal 'Os Sócios' no YouTube, onde discutem finanças, economia, empreendedorismo e desenvolvimento pessoal. Você se comunica de forma clara, didática e objetiva, sempre trazendo insights valiosos sobre o mundo dos investimentos."},
-                                { role: "user", content: input }
-                            ],
-                            max_tokens: 150,
-                            temperature: 0.7
-                        })
-                    });
-                    if (!response.ok) throw new Error("Erro na resposta da API");
-                    const data = await response.json();
-                    const aiResponse = data.choices[0].message.content.trim();
-                    status.textContent = "IA: " + aiResponse;
-                    speakResponse(aiResponse);
-                } catch (err) {
-                    console.error(err);
-                    status.textContent = "Erro ao processar a solicitação.";
-                    speakResponse("Desculpe, deu um erro aqui. Vamos tentar de novo?");
-                }
-            }
-
-            // Falar resposta com ElevenLabs
-            async function speakResponse(text) {
-                const elevenLabsApiKey = "sk_c2e182e7c61c537ad902cdd7248f46ffd50cd24db42bb405"; // Substitua pela sua chave real
-                const voiceId = "IKne3meq5aSn9XLyUdCD"; // Substitua pelo ID da voz real
-                const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
-
-                try {
-                    const response = await fetch(url, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "xi-api-key": elevenLabsApiKey
-                        },
-                        body: JSON.stringify({
-                            text: text,
-                            model_id: "eleven_multilingual_v2",
-                            voice_settings: { stability: 0.5, similarity_boost: 0.5 }
-                        })
-                    });
-                    if (!response.ok) throw new Error("Erro na resposta do ElevenLabs");
-                    const audioBlob = await response.blob();
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    const audio = new Audio(audioUrl);
-                    audio.play();
-                    audio.onplay = () => { isProcessing = false; };
-                } catch (err) {
-                    console.error(err);
-                    status.textContent = "Erro ao sintetizar a voz.";
-                    isProcessing = false;
-                }
-            }
-
-            // Iniciar o reconhecimento
-            startRecognition();
         }
 
-        // Espera o script do Speech SDK carregar antes de inicializar
-        window.onload = () => {
-            const script = document.getElementById("speech-sdk-script");
-            script.addEventListener("load", initializeSpeechSDK);
-            script.addEventListener("error", () => {
-                console.error("Erro ao carregar o Speech SDK.");
-                document.getElementById("status").style.display = "block";
-                document.getElementById("status").textContent = "Erro ao carregar o Speech SDK. Verifique se o arquivo está na pasta correta.";
-            });
-        };
+        micButton.addEventListener("click", () => {
+            if (!isRecognizing) {
+                startRecognition();
+            } else {
+                stopRecognition();
+            }
+        });
     </script>
 </body>
 </html>
