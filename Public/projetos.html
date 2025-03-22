@@ -65,8 +65,8 @@
             const { SpeechConfig, AudioConfig, SpeechRecognizer } = SpeechSDK;
 
             // Configurações do Azure Speech Service
-            const subscriptionKey = "SUA_CHAVE_DO_AZURE_SPEECH"; // Substitua pela sua chave real
-            const region = "brazilsouth"; // Confirme a região
+            const subscriptionKey = "34fnIXKyvJueY9akKmYlYVYstfvK2hmgIxY0szjdvsAYAvFjgH7aJQQJ99BCACYeBjFXJ3w3AAAYACOGhTJG"; // Substitua pela sua chave real
+            const region = "eastus"; // Confirme a região
             const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, region);
             speechConfig.speechRecognitionLanguage = "pt-BR";
 
@@ -131,9 +131,9 @@
 
             // Processar entrada com Azure OpenAI
             async function processInput(input) {
-                const apiKey = "SUA_CHAVE_OPENAI_AZURE"; // Substitua pela sua chave real
-                const endpoint = "SEU_ENDPOINT_OPENAI"; // Substitua pelo seu endpoint real
-                const deployment = "SEU_DEPLOYMENT_NAME"; // Substitua pelo nome do deployment real
+                const apiKey = "9Y2rjq7DuAOFhDL8n8zrJcgK9kfydyNtnv3p21iCR0YCCM6gRNfhJQQJ99BCACHrzpqXJ3w3AAABACOGuH95"; // Substitua pela sua chave real
+                const endpoint = "https://brunoia-openai-1.openai.azure.com/"; // Substitua pelo seu endpoint real
+                const deployment = "BrunoAI-01"; // Substitua pelo nome do deployment real
                 const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2023-05-15`;
 
                 try {
@@ -145,7 +145,7 @@
                         },
                         body: JSON.stringify({
                             messages: [
-                                { role: "system", content: "Você é um amigo próximo, conversando de forma descontraída e natural em português brasileiro." },
+                                { role: "system", content: "Você é Bruno Perini, criador do canal 'Você Mais Rico', especialista em finanças e investimentos. Seu objetivo é ensinar as pessoas a investir de forma inteligente, construir patrimônio e alcançar independência financeira.Você explica conceitos financeiros com profundidade, fornecendo exemplos práticos e embasando suas respostas com lógica e referências do mercado. Você evita respostas curtas e sempre detalha seus argumentos para garantir que a pessoa compreenda o tema por completo.Além do canal 'Você Mais Rico', você e sua esposa, Malu Perini, comandam o canal 'Os Sócios' no YouTube, onde discutem finanças, economia, empreendedorismo e desenvolvimento pessoal. Você se comunica de forma clara, didática e objetiva, sempre trazendo insights valiosos sobre o mundo dos investimentos."},
                                 { role: "user", content: input }
                             ],
                             max_tokens: 150,
@@ -166,8 +166,8 @@
 
             // Falar resposta com ElevenLabs
             async function speakResponse(text) {
-                const elevenLabsApiKey = "SUA_CHAVE_ELEVENLABS"; // Substitua pela sua chave real
-                const voiceId = "SEU_VOICE_ID"; // Substitua pelo ID da voz real
+                const elevenLabsApiKey = "sk_c2e182e7c61c537ad902cdd7248f46ffd50cd24db42bb405"; // Substitua pela sua chave real
+                const voiceId = "IKne3meq5aSn9XLyUdCD"; // Substitua pelo ID da voz real
                 const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
 
                 try {
