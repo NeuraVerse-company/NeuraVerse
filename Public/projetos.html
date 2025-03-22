@@ -91,9 +91,10 @@
         <div id="mic-reminder">Por favor, ative o microfone para usar esta página.</div>
     </div>
 
-    <!-- Carrega o script localmente no contexto do Azure Web App -->
-    <script src="./microsoft.cognitiveservices.speech.sdk.bundle-min.js"
-            onerror="document.getElementById('mic-reminder').style.display = 'block'; document.getElementById('mic-reminder').textContent = 'Erro ao carregar o Speech SDK local. Verifique se o arquivo está na pasta correta.';"></script>
+    <!-- Carrega o Speech SDK via CDN -->
+    <script src="https://aka.ms/csspeech/jsbrowserpackage"
+            onerror="document.getElementById('mic-reminder').style.display = 'block'; document.getElementById('mic-reminder').textContent = 'Erro ao carregar o Speech SDK via CDN. Verifique sua conexão com a internet.';"></script>
+
     <script>
         // Verificar se o SpeechSDK foi carregado
         if (!window.Microsoft || !window.Microsoft.CognitiveServices || !window.Microsoft.CognitiveServices.Speech) {
@@ -296,5 +297,6 @@
             };
         }
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'924242357882bcf0',t:'MTc0MjYxMDUzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
