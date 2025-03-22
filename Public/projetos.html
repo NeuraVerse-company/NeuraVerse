@@ -3,52 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interface de IA</title>
+    <title>Conversa com IA</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             background: #000000;
-            overflow: hidden;
-            position: relative;
-        }
-        #main-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            z-index: 1;
-        }
-        #neural-network {
-            width: 200px;
-            height: 100px;
-            background: transparent;
-        }
-        #avatar-container {
-            display: flex;
-            flex-direction: row;
-            gap: 50px;
-        }
-        .avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background-color: #343541;
-            border: 3px solid #0078d4;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            color: white;
         }
         #mic-button {
             padding: 10px;
@@ -63,151 +29,84 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            margin-bottom: 10px;
         }
         #mic-button.listening {
             background-color: #ff4444;
         }
-        #mic-reminder {
+        #status {
             color: #ff4444;
             font-size: 14px;
             text-align: center;
             display: none;
-            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <div id="main-container">
-        <canvas id="neural-network"></canvas>
-        <div id="avatar-container">
-            <div class="avatar" id="ai-avatar">
-                <img src="https://via.placeholder.com/100?text=IA" alt="Modelo de IA">
-            </div>
-            <div class="avatar" id="user-avatar">
-                <img src="https://via.placeholder.com/100?text=Usuário" alt="Usuário">
-            </div>
-        </div>
-        <button id="mic-button">🎤</button>
-        <div id="mic-reminder">Por favor, ative o microfone para usar esta página.</div>
-    </div>
+    <button id="mic-button">🎤</button>
+    <div id="status">Por favor, ative o microfone para conversar.</div>
 
     <!-- Carrega o Speech SDK via CDN -->
-    <script src="https://aka.ms/csspeech/jsbrowserpackage"
-            onerror="document.getElementById('mic-reminder').style.display = 'block'; document.getElementById('mic-reminder').textContent = 'Erro ao carregar o Speech SDK via CDN. Verifique sua conexão com a internet.';"></script>
+    <script src="https://unpkg.com/@microsoft/cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"
+            onerror="document.getElementById('status').style.display = 'block'; document.getElementById('status').textContent = 'Erro ao carregar o Speech SDK. Verifique sua conexão.';"></script>
 
     <script>
-        // Verificar se o SpeechSDK foi carregado
         if (!window.Microsoft || !window.Microsoft.CognitiveServices || !window.Microsoft.CognitiveServices.Speech) {
-            console.error("SpeechSDK não carregado. Verifique a conexão ou o script.");
-            document.getElementById("mic-reminder").style.display = "block";
-            document.getElementById("mic-reminder").textContent = "Erro ao carregar o Speech SDK. Tente novamente.";
+            console.error("SpeechSDK não carregado.");
+            document.getElementById("status").style.display = "block";
+            document.getElementById("status").textContent = "Erro ao carregar o Speech SDK. Tente novamente.";
         } else {
             const SpeechSDK = window.Microsoft.CognitiveServices.Speech;
             const { SpeechConfig, AudioConfig, SpeechRecognizer } = SpeechSDK;
 
             // Configurações do Azure Speech Service
-            const subscriptionKey = "SUA_CHAVE_DO_AZURE_SPEECH";
-            const region = "brazilsouth"; // Confirme se esta região é suportada
+            const subscriptionKey = "SUA_CHAVE_DO_AZURE_SPEECH"; // Substitua pela sua chave
+            const region = "brazilsouth"; // Confirme a região
             const speechConfig = SpeechConfig.fromSubscription(subscriptionKey, region);
             speechConfig.speechRecognitionLanguage = "pt-BR";
 
             // Elementos da interface
             const micButton = document.getElementById("mic-button");
-            const micReminder = document.getElementById("mic-reminder");
+            const status = document.getElementById("status");
             let recognizer = null;
             let isProcessing = false;
 
-            // Configurar o canvas
-            const canvas = document.getElementById("neural-network");
-            canvas.width = 200;
-            canvas.height = 100;
-            const ctx = canvas.getContext("2d");
-
-            // Nós do triângulo
-            const nodes = [
-                { x: 100, y: 30, color: "#1E90FF" },
-                { x: 80, y: 60, color: "#00BFFF" },
-                { x: 120, y: 60, color: "#4682B4" }
-            ];
-
-            // Conexões do triângulo
-            const connections = [
-                { start: 0, end: 1 },
-                { start: 1, end: 2 },
-                { start: 2, end: 0 }
-            ];
-
-            // Variáveis de animação
-            let time = 0;
-            const neuronSpeed = 0.02;
-            const neuronPositions = connections.map(() => ({ t: 0, direction: 1 }));
-
-            // Função de animação
-            function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                if (isProcessing) {
-                    time += 0.05;
-                    connections.forEach((connection, index) => {
-                        const startNode = nodes[connection.start];
-                        const endNode = nodes[connection.end];
-                        const pos = neuronPositions[index];
-                        pos.t += neuronSpeed * pos.direction;
-                        if (pos.t >= 1) { pos.t = 1; pos.direction = -1; }
-                        else if (pos.t <= 0) { pos.t = 0; pos.direction = 1; }
-                        const x = startNode.x + (endNode.x - startNode.x) * pos.t;
-                        const y = startNode.y + (endNode.y - startNode.y) * pos.t;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 2, 0, Math.PI * 2);
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fill();
-                    });
-                    nodes.forEach((node, index) => {
-                        const pulse = Math.sin(time + index) * 1 + 5;
-                        ctx.beginPath();
-                        ctx.arc(node.x, node.y, pulse, 0, Math.PI * 2);
-                        ctx.fillStyle = node.color;
-                        ctx.fill();
-                    });
-                }
-                requestAnimationFrame(animate);
-            }
-
-            animate();
-
-            // Iniciar reconhecimento contínuo
-            function startContinuousRecognition() {
+            // Iniciar reconhecimento de voz
+            function startRecognition() {
                 const audioConfig = AudioConfig.fromDefaultMicrophoneInput();
                 recognizer = new SpeechRecognizer(speechConfig, audioConfig);
                 micButton.classList.add("listening");
 
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(() => {
-                        micReminder.style.display = "none";
+                        status.style.display = "none";
                         recognizer.recognized = (s, e) => {
                             if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech && !isProcessing) {
                                 isProcessing = true;
+                                status.textContent = "Ouvindo: " + e.result.text;
                                 processInput(e.result.text);
                             }
                         };
                         recognizer.canceled = (s, e) => {
                             console.error("Reconhecimento cancelado:", e.errorDetails);
-                            micReminder.style.display = "block";
+                            status.style.display = "block";
+                            status.textContent = "Erro no reconhecimento de voz.";
                             restartRecognition();
                         };
-                        recognizer.sessionStopped = () => {
-                            restartRecognition();
-                        };
+                        recognizer.sessionStopped = () => restartRecognition();
                         recognizer.startContinuousRecognitionAsync(
                             () => console.log("Reconhecimento iniciado"),
-                            (error) => {
-                                console.error("Erro ao iniciar:", error);
-                                micReminder.style.display = "block";
+                            (err) => {
+                                console.error("Erro ao iniciar:", err);
+                                status.style.display = "block";
+                                status.textContent = "Erro ao iniciar o reconhecimento.";
                             }
                         );
                     })
-                    .catch((error) => {
-                        console.error("Microfone não disponível:", error);
-                        micReminder.style.display = "block";
+                    .catch((err) => {
+                        console.error("Microfone não disponível:", err);
+                        status.style.display = "block";
+                        status.textContent = "Microfone não disponível. Verifique as permissões.";
                     });
             }
 
@@ -218,18 +117,18 @@
                         () => {
                             recognizer.close();
                             recognizer = null;
-                            startContinuousRecognition();
+                            startRecognition();
                         },
-                        (error) => console.error("Erro ao parar:", error)
+                        (err) => console.error("Erro ao parar:", err)
                     );
                 }
             }
 
             // Processar entrada com Azure OpenAI
             async function processInput(input) {
-                const apiKey = "SUA_CHAVE_OPENAI_AZURE";
-                const endpoint = "SEU_ENDPOINT_OPENAI";
-                const deployment = "SEU_DEPLOYMENT_NAME";
+                const apiKey = "SUA_CHAVE_OPENAI_AZURE"; // Substitua pela sua chave
+                const endpoint = "SEU_ENDPOINT_OPENAI"; // Substitua pelo seu endpoint
+                const deployment = "SEU_DEPLOYMENT_NAME"; // Substitua pelo nome do deployment
                 const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2023-05-15`;
 
                 try {
@@ -241,7 +140,7 @@
                         },
                         body: JSON.stringify({
                             messages: [
-                                { role: "system", content: "Você é um assistente útil." },
+                                { role: "system", content: "Você é um amigo próximo, conversando de forma descontraída e natural em português brasileiro." },
                                 { role: "user", content: input }
                             ],
                             max_tokens: 150,
@@ -251,17 +150,19 @@
                     if (!response.ok) throw new Error("Erro na resposta da API");
                     const data = await response.json();
                     const aiResponse = data.choices[0].message.content.trim();
+                    status.textContent = "IA: " + aiResponse;
                     speakResponse(aiResponse);
-                } catch (error) {
-                    console.error(error);
-                    speakResponse("Desculpe, houve um erro ao processar sua solicitação.");
+                } catch (err) {
+                    console.error(err);
+                    status.textContent = "Erro ao processar a solicitação.";
+                    speakResponse("Desculpe, deu um erro aqui. Vamos tentar de novo?");
                 }
             }
 
             // Falar resposta com ElevenLabs
             async function speakResponse(text) {
-                const elevenLabsApiKey = "SUA_CHAVE_ELEVENLABS";
-                const voiceId = "SEU_VOICE_ID";
+                const elevenLabsApiKey = "SUA_CHAVE_ELEVENLABS"; // Substitua pela sua chave
+                const voiceId = "SEU_VOICE_ID"; // Substitua pelo ID da voz
                 const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
 
                 try {
@@ -282,21 +183,17 @@
                     const audioUrl = URL.createObjectURL(audioBlob);
                     const audio = new Audio(audioUrl);
                     audio.play();
-                    audio.onplay = () => {
-                        isProcessing = false;
-                    };
-                } catch (error) {
-                    console.error(error);
+                    audio.onplay = () => { isProcessing = false; };
+                } catch (err) {
+                    console.error(err);
+                    status.textContent = "Erro ao sintetizar a voz.";
                     isProcessing = false;
                 }
             }
 
             // Iniciar ao carregar
-            window.onload = () => {
-                startContinuousRecognition();
-            };
+            window.onload = () => startRecognition();
         }
     </script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'924242357882bcf0',t:'MTc0MjYxMDUzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
