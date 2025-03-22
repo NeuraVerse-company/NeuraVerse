@@ -91,7 +91,9 @@
         <div id="mic-reminder">Por favor, ative o microfone para usar esta página.</div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/1.40.0/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
+    <!-- Carrega o script localmente no contexto do Azure Web App -->
+    <script src="./microsoft.cognitiveservices.speech.sdk.bundle-min.js"
+            onerror="document.getElementById('mic-reminder').style.display = 'block'; document.getElementById('mic-reminder').textContent = 'Erro ao carregar o Speech SDK local. Verifique se o arquivo está na pasta correta.';"></script>
     <script>
         // Verificar se o SpeechSDK foi carregado
         if (!window.Microsoft || !window.Microsoft.CognitiveServices || !window.Microsoft.CognitiveServices.Speech) {
